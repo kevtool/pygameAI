@@ -1,6 +1,15 @@
 class pygameAI():
-    def get_action(self):
+    def __init__(self):
         pass
 
-    def step():
+    def get_action(self, observation):
+        return self.model.get_action(observation)
+
+    def reset(self):
+        pass
+
+    def step(self):
+        pass
+
+    def render(self):
         pass

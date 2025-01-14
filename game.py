@@ -103,6 +103,9 @@ class Game():
     def normalize_values(self, *params):
         return [p / self.window_width for p in params]
     
+
+    # the step function of the game needs to take in action as an argument
+    # if the mode is human, we can then get action from pygame keys and ignore the argument
     def step(self, mode='human', brain=None, render=True):
         keys = pygame.key.get_pressed()
 

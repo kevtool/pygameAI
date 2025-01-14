@@ -1,3 +1,6 @@
+January 14 update:
+It should be the brain running the game, not the game running the brain. Which means the step function of the game needs to take in action as an argument.
+
 September 10 update:
 Reorganized code to make it more generalized and usable.
 Bug fixed: when pygame is run, the first iteration of the game has delayed times for pipe entries, which causes the first iteration to always have a higher score.

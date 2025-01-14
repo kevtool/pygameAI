@@ -83,7 +83,10 @@ class Game():
         self.highscore = max(self.highscore, self.score)
         self.score = 0
 
-    def reset(self):
+    def reset(self, render=False):
+        if render:
+            pygame.time.wait(int(30000 / self.game_speed))
+
         self.prev_action = None
         self.changes = 0
         self.pipes.clear()
@@ -138,11 +141,9 @@ class Game():
 
         self.update_pipes()
 
-        print(self.player_pos)
-
         if self.check_hit(self.player_pos) or self.score > 100000:
             self.update_score()
-            self.reset()
+            self.reset(render=render)
         
         return 1, change, self.check_hit(self.player_pos) or self.score > 100000
 
@@ -161,17 +162,15 @@ class Game():
         self.font.render_to(self.screen, (10, 40), "Highscore: {}".format(self.highscore), (255, 255, 255))
         pygame.display.flip()
 
-        if self.check_hit(self.player_pos) or self.score > 100000:
-            pygame.time.wait(int(30000 / game_speed))
-
         self.clock.tick(game_speed)
     
     def run(self, iters, mode='human', brain=None, game_speed=60, render=True):
         scores = []
         dir_changes = []
 
+        self.game_speed = game_speed
         if mode == 'human':
-            game_speed = 60
+            self.game_speed = 60
 
         self.initiate_pygame(render=render)
 
@@ -181,7 +180,7 @@ class Game():
             while True:
                 reward, change, done = self.step(mode=mode, brain=brain, render=render)
                 if render:
-                    self.render(game_speed=game_speed)
+                    self.render(game_speed=self.game_speed)
 
                 score += reward
                 changes += change

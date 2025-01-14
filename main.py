@@ -21,7 +21,7 @@ model = Algorithm(starting_brains)
 
 for _ in range(generations):
     for index, brain_ in enumerate(model.brains):
-        scores, dir_changes = game.run(10, mode='ai', brain=brain_, render=True, game_speed = 60)
+        scores, dir_changes = game.run(10, mode='ai', brain=brain_, render=False)
         scores, dir_changes = statistics.fmean(scores), statistics.fmean(dir_changes)
         print(index, scores, dir_changes)
         model.record_score(index, scores, dir_changes)
@@ -29,4 +29,4 @@ for _ in range(generations):
     model.create_new_gen(brains_per_gen)
 
 brain_ = model.brains[0]
-game.run(1, mode='ai', brain=brain_, game_speed = 60)
+game.run(1, mode='ai', brain=brain_, game_speed=60)

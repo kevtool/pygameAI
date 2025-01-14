@@ -141,14 +141,19 @@ class Game():
 
         self.update_pipes()
 
+        if render:
+            self.render()
+
+        done = False
         if self.check_hit(self.player_pos) or self.score > 100000:
+            done = True
             self.update_score()
             self.reset(render=render)
         
-        return 1, change, self.check_hit(self.player_pos) or self.score > 100000
+        return 1, change, done
 
 
-    def render(self, game_speed=60):
+    def render(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -162,7 +167,7 @@ class Game():
         self.font.render_to(self.screen, (10, 40), "Highscore: {}".format(self.highscore), (255, 255, 255))
         pygame.display.flip()
 
-        self.clock.tick(game_speed)
+        self.clock.tick(self.game_speed)
     
     def run(self, iters, mode='human', brain=None, game_speed=60, render=True):
         scores = []
@@ -179,77 +184,13 @@ class Game():
             changes = 0
             while True:
                 reward, change, done = self.step(mode=mode, brain=brain, render=render)
-                if render:
-                    self.render(game_speed=self.game_speed)
 
                 score += reward
                 changes += change
+
                 if done:
                     scores.append(score)
                     dir_changes.append(changes)
                     break
-
-                # if render == True:
-                #     for event in pygame.event.get():
-                #         if event.type == pygame.QUIT:
-                #             pygame.quit()
-
-                #     self.screen.fill("purple")
-                # keys = pygame.key.get_pressed()
-
-                # nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
-                # # print(nearest_pipe_x)
-                # # print(action)
-
-                # if mode == 'human':
-                #     action = keys[pygame.K_SPACE]
-                # elif mode == 'ai':
-                #     action = (brain.forward(self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)) > 0)
-                # else:
-                #     raise Exception("Error: Invalid mode")
-
-                # if action:
-                #     self.player.update_pos('up')
-                # else:
-                #     self.player.update_pos('down')
-
-                # if self.prev_action != None:
-                #     if self.prev_action != action:
-                #         self.changes += 1
-                    
-                    
-                # self.prev_action = action
-                
-                # self.player_pos.y = self.player.pos
-                
-
-                # self.pipetick += 1
-                # if self.pipetick % 150 == 0:
-                #     self.add_pipe()
-                #     self.pipetick = 0
-
-                # self.score += 1
-                
-                # if render == True:
-                #     pygame.draw.circle(self.screen, "red", self.player_pos, self.player.radius)
-                #     self.update_pipes()
-                #     self.font.render_to(self.screen, (10, 10), "Score: {}".format(self.score), (255, 255, 255))
-                #     self.font.render_to(self.screen, (10, 40), "Highscore: {}".format(self.highscore), (255, 255, 255))
-                #     pygame.display.flip()
-                # else:
-                #     self.update_pipes(render=False)
-
-                # if self.check_hit(self.player_pos) or self.score > 100000:
-                #     if render == True:
-                #         pygame.time.wait(int(30000 / game_speed))
-                #     scores.append(self.score)
-                #     self.update_score()
-                #     dir_changes.append(self.changes)
-
-                #     self.reset()
-                #     break                    
-                
-                # if render == True:
-                #     self.clock.tick(game_speed)
 
         return scores, dir_changes

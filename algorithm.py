@@ -1,5 +1,6 @@
 import numpy as np
-from utils import argsort
+from utils import argmax, argsort, softmax
+from pygameai import pygameAI
 
 class Layer:
     def __init__(self, weights, biases):
@@ -84,13 +85,48 @@ class NeuralNetwork:
         return x
 
 class Algorithm:
-    def __init__(self, brains_per_gen):
-        self.brains = [NeuralNetwork.create(inputs=4, layerlist=[3], outputs=1) for _ in range(brains_per_gen)]
+    def __init__(self, brains_per_gen, env=None, layerlist=None):
+
+        assert issubclass(type(env), pygameAI)
+        self.env = env
+
+        self.inputs = len(env.obs_space)
+        self.outputs = len(env.action_space)
+        self.layerlist = layerlist or [int((self.inputs + self.outputs) / 2)]
+        self.brains = [NeuralNetwork.create(inputs=self.inputs, layerlist=self.layerlist, outputs=self.outputs) for _ in range(brains_per_gen)]
         self.scores = []
     
+    def run(self):
+        for index, brain in enumerate(self.brains):
+            _, _, obs, done, _ = self.env.reset()
+
+            score = 0
+            secondary_score = 0
+
+            while not done:
+                action = argmax(softmax(brain.forward(obs)))
+
+                reward, secondary_reward, obs, done, info = self.env.step(action, mode='ai', render=False)
+
+                score += reward
+                secondary_score += secondary_reward
+
+            print(index, score, secondary_score)
+            self.record_score(index, score, secondary_score)
+
+    def demo(self):
+        brain = self.brains[0]
+        self.env.initiate_pygame(game_speed=60)
+        _, _, obs, done, _ = self.env.reset()
+
+        while not done:
+            action = argmax(softmax(brain.forward(obs)))
+            _, _, obs, done, self.env.step(action, mode='ai', render=True)
+
+
     # changes: get the number of direction changes
-    def record_score(self, index, score, changes):
-        self.scores.append((index, score, changes))
+    def record_score(self, index, score, secondary_score):
+        self.scores.append((index, score, secondary_score))
 
     # get a list of how the descendants should be distributed among qualified brains
     def get_desc_list(self, num_of_descendants, qualified_brains):
@@ -125,7 +161,7 @@ class Algorithm:
 
         # if there are no qualified brains, create new ones with random weights
         if qualified_brains == 0:
-            new_brains = [NeuralNetwork.create(inputs=4, layerlist=[3], outputs=1) for _ in range(num_of_descendants)]
+            new_brains = [NeuralNetwork.create(inputs=self.inputs, layerlist=self.layerlist, outputs=self.outputs) for _ in range(num_of_descendants)]
         else:
             desc_list = self.get_desc_list(num_of_descendants, qualified_brains)
             new_brains = []
@@ -140,7 +176,7 @@ class Algorithm:
                     else:
                         new_brains.append(NeuralNetwork.mutate(brain_to_reproduce))
 
-        created_brains = [NeuralNetwork.create(inputs=4, layerlist=[3], outputs=1) for _ in range(brains_per_gen - num_of_descendants)]
+        created_brains = [NeuralNetwork.create(inputs=self.inputs, layerlist=self.layerlist, outputs=self.outputs) for _ in range(brains_per_gen - num_of_descendants)]
         new_brains = new_brains + created_brains
 
         assert len(new_brains) == brains_per_gen

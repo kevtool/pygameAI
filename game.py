@@ -29,10 +29,11 @@ class Game(pygameAI):
         self.set_obs_space('discrete', 4)
         self.set_action_space('discrete', 2)
 
-    def initiate_pygame(self, render=True):
+    def initiate_pygame(self, game_speed=60):
         pygame.init()
-        if render == False:
-            return
+
+        # game speed
+        self.game_speed = game_speed
 
         # screen, clock
         self.screen = pygame.display.set_mode((self.window_width, self.window_height))
@@ -98,6 +99,11 @@ class Game(pygameAI):
         self.player.reset_pos()
         self.pipetick = 0
 
+        nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
+        obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+
+        return 0, 0, obs, False, None
+
     def check_hit(self, player_pos):
         for i, pipe in enumerate(self.pipes):
             if self.intersects(pipe.toprect, self.player.radius, player_pos) or self.intersects(pipe.botrect, self.player.radius, player_pos):
@@ -114,11 +120,8 @@ class Game(pygameAI):
     def step(self, action, mode='human', brain=None, render=True):
         assert mode in ['human', 'ai']
 
-        keys = pygame.key.get_pressed()
-
-        nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
-
         if mode == 'human':
+            keys = pygame.key.get_pressed()
             action_ = 1 if keys[pygame.K_SPACE] else 0
         elif mode == 'ai':
             # action = (brain.forward(self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)) > 0)
@@ -154,13 +157,17 @@ class Game(pygameAI):
         if render:
             self.render()
 
+        # new observation
+        nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
+        obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+
         done = False
         if self.check_hit(self.player_pos) or self.score > 100000:
             done = True
             self.update_score()
             self.reset(render=render)
         
-        return 1, change, done
+        return 1, change, obs, done, None
 
 
     def render(self):
@@ -195,7 +202,7 @@ class Game(pygameAI):
             score = 0
             changes = 0
             while True:
-                reward, change, done = self.step(mode=mode, brain=brain, render=render)
+                reward, change, _, done, _= self.step(mode=mode, brain=brain, render=render)
 
                 score += reward
                 changes += change

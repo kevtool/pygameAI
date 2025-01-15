@@ -11,7 +11,12 @@ game = Game()
 # human mode
 # game.run(10)
 
-model = Algorithm(starting_brains)
+model = Algorithm(starting_brains, game)
+for _ in range(generations):
+    model.run()
+    model.create_new_gen(brains_per_gen)
+
+model.demo()
 
 # for _ in range(brains_per_gen):
 #     scores, dir_changes = game.run(10, mode='ai', brain=model.brain)
@@ -19,14 +24,17 @@ model = Algorithm(starting_brains)
 #     model.get_score(scores, dir_changes)
 #     model.next_brain()
 
-for _ in range(generations):
-    for index, brain_ in enumerate(model.brains):
-        scores, dir_changes = game.run(10, mode='ai', brain=brain_, render=False)
-        scores, dir_changes = statistics.fmean(scores), statistics.fmean(dir_changes)
-        print(index, scores, dir_changes)
-        model.record_score(index, scores, dir_changes)
 
-    model.create_new_gen(brains_per_gen)
 
-brain_ = model.brains[0]
-game.run(1, mode='ai', brain=brain_, game_speed=60)
+
+# for _ in range(generations):
+#     for index, brain_ in enumerate(model.brains):
+#         scores, dir_changes = game.run(10, mode='ai', brain=brain_, render=False)
+#         scores, dir_changes = statistics.fmean(scores), statistics.fmean(dir_changes)
+#         print(index, scores, dir_changes)
+#         model.record_score(index, scores, dir_changes)
+
+#     model.create_new_gen(brains_per_gen)
+
+# brain_ = model.brains[0]
+# game.run(1, mode='ai', brain=brain_, game_speed=60)

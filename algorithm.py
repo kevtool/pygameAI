@@ -1,4 +1,5 @@
 import numpy as np
+import statistics
 from utils import argmax, argsort, softmax
 from pygameai import pygameAI
 
@@ -95,24 +96,36 @@ class Algorithm:
         self.layerlist = layerlist or [int((self.inputs + self.outputs) / 2)]
         self.brains = [NeuralNetwork.create(inputs=self.inputs, layerlist=self.layerlist, outputs=self.outputs) for _ in range(brains_per_gen)]
         self.scores = []
+
+    def train(self, generations, descendants_per_gen):
+        for _ in range(generations):
+            self.run_generation()
+            self.create_new_gen(descendants_per_gen)
     
-    def run(self):
+    def run_generation(self):
         for index, brain in enumerate(self.brains):
-            _, _, obs, done, _ = self.env.reset()
+            scores = []
+            secondary_scores = []
+            for _ in range(10):
+                _, _, obs, done, _ = self.env.reset()
 
-            score = 0
-            secondary_score = 0
+                score = 0
+                secondary_score = 0
 
-            while not done:
-                action = argmax(softmax(brain.forward(obs)))
+                while not done:
+                    action = argmax(softmax(brain.forward(obs)))
 
-                reward, secondary_reward, obs, done, info = self.env.step(action, mode='ai', render=False)
+                    reward, secondary_reward, obs, done, info = self.env.step(action, mode='ai', render=False)
 
-                score += reward
-                secondary_score += secondary_reward
+                    score += reward
+                    secondary_score += secondary_reward
 
-            print(index, score, secondary_score)
-            self.record_score(index, score, secondary_score)
+                scores.append(score)
+                secondary_scores.append(score)
+
+            scores, secondary_scores = statistics.fmean(scores), statistics.fmean(secondary_scores)
+            print(index, scores, secondary_scores)
+            self.record_score(index, scores, secondary_scores)
 
     def demo(self):
         brain = self.brains[0]
@@ -121,7 +134,7 @@ class Algorithm:
 
         while not done:
             action = argmax(softmax(brain.forward(obs)))
-            _, _, obs, done, self.env.step(action, mode='ai', render=True)
+            _, _, obs, done, info = self.env.step(action, mode='ai', render=True)
 
 
     # changes: get the number of direction changes

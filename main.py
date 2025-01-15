@@ -3,18 +3,13 @@ from game import Game
 from algorithm import Algorithm
 
 starting_brains = 20
-brains_per_gen = 20
+descendants_per_gen = 20
 generations = 10
 
 game = Game()
 
-# human mode
-# game.run(10)
-
 model = Algorithm(starting_brains, game)
-for _ in range(generations):
-    model.run()
-    model.create_new_gen(brains_per_gen)
+model.train(generations, descendants_per_gen)
 
 model.demo()
 
@@ -23,9 +18,6 @@ model.demo()
 #     scores, dir_changes = statistics.fmean(scores), statistics.fmean(dir_changes)
 #     model.get_score(scores, dir_changes)
 #     model.next_brain()
-
-
-
 
 # for _ in range(generations):
 #     for index, brain_ in enumerate(model.brains):

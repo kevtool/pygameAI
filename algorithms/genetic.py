@@ -1,7 +1,7 @@
 import numpy as np
 import statistics
 from utils import argmax, argsort, softmax
-from pygameai import pygameAI
+from algorithms.algorithm import Algorithm
 
 class Layer:
     def __init__(self, weights, biases):
@@ -85,11 +85,9 @@ class NeuralNetwork:
 
         return x
 
-class Algorithm:
-    def __init__(self, brains_per_gen, env=None, layerlist=None):
-
-        assert issubclass(type(env), pygameAI)
-        self.env = env
+class GeneticAlgorithm(Algorithm):
+    def __init__(self, brains_per_gen, env, layerlist=None):
+        super().__init__(env)
 
         self.inputs = len(env.obs_space)
         self.outputs = len(env.action_space)

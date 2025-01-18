@@ -2,6 +2,9 @@ class pygameAI():
     def __init__(self):
         pass
 
+    def set_game_speed(self, game_speed):
+        self.game_speed = game_speed
+
     def set_action_space(self, type, num):
         assert type in ['discrete', 'continuous']
         self.action_type = type

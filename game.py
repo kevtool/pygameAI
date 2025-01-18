@@ -2,10 +2,10 @@ import pygame
 import pygame.freetype
 from pygameai import pygameAI
 from objects import Ship, Pipe
-from algorithm import Algorithm
+from algorithms.genetic import Algorithm
 
 class Game(pygameAI):
-    def __init__(self):
+    def __init__(self, use_values_for_obs=False):
         self.window_width = 1280
         self.window_height = 720
 
@@ -26,6 +26,7 @@ class Game(pygameAI):
         self.changes = 0
 
         # obs / action space
+        self.use_values_for_obs = use_values_for_obs
         self.set_obs_space('discrete', 4)
         self.set_action_space('discrete', 2)
 
@@ -89,6 +90,12 @@ class Game(pygameAI):
         self.highscore = max(self.highscore, self.score)
         self.score = 0
 
+    def get_rgb_array(self):
+        # return pygame.surfarray.array3d(self.screen)
+        array = pygame.surfarray.array3d(self.screen)
+        print(array.shape)
+        return array
+
     def reset(self, render=False):
         if render:
             pygame.time.wait(int(30000 / self.game_speed))
@@ -117,7 +124,7 @@ class Game(pygameAI):
 
     # the step function of the game needs to take in action as an argument
     # if the mode is human, we can then get action from pygame keys and ignore the argument
-    def step(self, action, mode='human', brain=None, render=True):
+    def step(self, action=None, mode='human', brain=None, render=True):
         assert mode in ['human', 'ai']
 
         if mode == 'human':
@@ -159,7 +166,10 @@ class Game(pygameAI):
 
         # new observation
         nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
-        obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+        if self.use_values_for_obs == True:
+            obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+        else:
+            obs = self.get_rgb_array()
 
         done = False
         if self.check_hit(self.player_pos) or self.score > 100000:
@@ -186,30 +196,14 @@ class Game(pygameAI):
 
         self.clock.tick(self.game_speed)
     
-    def run(self, iters, mode='human', brain=None, game_speed=60, render=True):
-        assert mode in ['human', 'ai']
-        
-        scores = []
-        dir_changes = []
+    def run(self, game_speed=60):
+        self.initiate_pygame()
+        self.reset(render=True)
 
         self.game_speed = game_speed
-        if mode == 'human':
-            self.game_speed = 60
 
-        self.initiate_pygame(render=render)
+        while True:
+            _, _, _, done, _= self.step(mode="human", render=True)
 
-        for _ in range(iters):
-            score = 0
-            changes = 0
-            while True:
-                reward, change, _, done, _= self.step(mode=mode, brain=brain, render=render)
-
-                score += reward
-                changes += change
-
-                if done:
-                    scores.append(score)
-                    dir_changes.append(changes)
-                    break
-
-        return scores, dir_changes
+            if done:
+                break

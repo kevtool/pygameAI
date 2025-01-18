@@ -1,6 +1,6 @@
 import statistics
 from game import Game
-from algorithm import Algorithm
+from algorithms.genetic import Algorithm
 
 # check if get_desc_list is working
 def desc_list_test():

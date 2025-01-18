@@ -5,21 +5,20 @@ class pygameAI():
     def set_game_speed(self, game_speed):
         self.game_speed = game_speed
 
-    def set_action_space(self, type, num):
+    def set_action_space(self, type, shape):
         assert type in ['discrete', 'continuous']
         self.action_type = type
+        self.action_shape = shape
+
         if type == 'discrete':
-            self.action_space = [i for i in range(num)]
+            self.action_space = [i for i in range(shape)]
         elif type == 'continuous':
             pass
 
-    def set_obs_space(self, type, num):
+    def set_obs_space(self, type, shape):
         assert type in ['discrete', 'continuous']
         self.obs_type = type
-        if type == 'discrete':
-            self.obs_space = [i for i in range(num)]
-        elif type == 'continuous':
-            pass
+        self.obs_shape = shape
 
     def reset(self):
         pass

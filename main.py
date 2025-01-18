@@ -1,5 +1,8 @@
 import statistics
 from game import Game
+from algorithms.dqn import DQN
 
 game = Game()
-game.run()
+
+model = DQN(game)
+model.train(1)

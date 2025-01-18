@@ -27,7 +27,12 @@ class Game(pygameAI):
 
         # obs / action space
         self.use_values_for_obs = use_values_for_obs
-        self.set_obs_space('discrete', 4)
+
+        if use_values_for_obs:
+            self.set_obs_space('continuous', 4)
+        else:
+            self.set_obs_space('continuous', (1280, 720, 3))
+
         self.set_action_space('discrete', 2)
 
     def initiate_pygame(self, game_speed=60):
@@ -93,7 +98,6 @@ class Game(pygameAI):
     def get_rgb_array(self):
         # return pygame.surfarray.array3d(self.screen)
         array = pygame.surfarray.array3d(self.screen)
-        print(array.shape)
         return array
 
     def reset(self, render=False):
@@ -106,8 +110,11 @@ class Game(pygameAI):
         self.player.reset_pos()
         self.pipetick = 0
 
-        nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
-        obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+        if self.use_values_for_obs == True:
+            nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
+            obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+        else:
+            obs = self.get_rgb_array()
 
         return 0, 0, obs, False, None
 
@@ -165,8 +172,8 @@ class Game(pygameAI):
             self.render()
 
         # new observation
-        nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
         if self.use_values_for_obs == True:
+            nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
             obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
         else:
             obs = self.get_rgb_array()

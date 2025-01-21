@@ -67,18 +67,20 @@ class DQN(Algorithm):
             ep_reward = 0
             _, _, obs, done, _ = self.env.reset(render=True)
 
+            state = np.array(obs, dtype=float)
+
             while not done:
                 if random.random() < epsilon:
                     action = self.env.action_space.sample()
                 else:
                     with torch.no_grad():
-                        state = np.array(obs, dtype=torch.float32)
                         state_tensor = torch.flatten(torch.tensor(obs, dtype=torch.float32, device='cuda'))
 
                         action = argmax(self.policy_network(state_tensor).to('cpu'))
 
                 reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
-                next_state = np.array(obs, dtype=torch.float32)
+                next_state = np.array(obs, dtype=float)
                 ep_reward += reward
 
                 replay_buffer.push(state, action, reward, next_state, done)
+                state = next_state

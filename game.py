@@ -1,3 +1,4 @@
+import torch
 import pygame
 import pygame.freetype
 from pygameai import pygameAI
@@ -8,6 +9,9 @@ class Game(pygameAI):
     def __init__(self, use_values_for_obs=False):
         self.window_width = 1280
         self.window_height = 720
+
+        # downsize the screen so models can store states more efficiently
+        self.pool_factor = 16
 
         # player
         self.player = Ship(self.window_height)
@@ -31,7 +35,11 @@ class Game(pygameAI):
         if use_values_for_obs:
             self.set_obs_space('continuous', 4)
         else:
-            self.set_obs_space('continuous', (1280, 720, 3))
+            self.set_obs_space('continuous', 
+                (int(1280 / self.pool_factor), 
+                 int(720 / self.pool_factor), 
+                 3)
+            )
 
         self.set_action_space('discrete', 2)
 
@@ -95,9 +103,18 @@ class Game(pygameAI):
         self.highscore = max(self.highscore, self.score)
         self.score = 0
 
+    # returning torch tensor
     def get_rgb_array(self):
         # return pygame.surfarray.array3d(self.screen)
         array = pygame.surfarray.array3d(self.screen)
+        array = torch.tensor(array, dtype=torch.float32, device='cuda')
+        array = array.permute(2, 0, 1).unsqueeze(0)
+        print(array.shape)
+        avg_pool = torch.nn.AvgPool2d(kernel_size=16, stride=16)
+        array = avg_pool(array)
+        print(array.shape)
+        array.to('cpu')
+
         return array
 
     def reset(self, render=False):
@@ -177,14 +194,17 @@ class Game(pygameAI):
             obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
         else:
             obs = self.get_rgb_array()
-
+        
+        reward = 1
         done = False
+
         if self.check_hit(self.player_pos) or self.score > 100000:
+            reward = -100
             done = True
             self.update_score()
             self.reset(render=render)
         
-        return 1, change, obs, done, None
+        return reward, change, obs, done, None
 
 
     def render(self):

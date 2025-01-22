@@ -5,4 +5,4 @@ from algorithms.dqn import DQN
 game = Game()
 
 model = DQN(game)
-model.train(1)
+model.train(10)

@@ -51,10 +51,17 @@ class DQN(Algorithm):
         self.inputs = prod(self.env.obs_shape)
         self.outputs = self.env.action_shape
 
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         self.policy_network = QNetwork(self.inputs, self.outputs).to(self.device)
         self.target_network = QNetwork(self.inputs, self.outputs).to(self.device)
+
+    # some functions to consider
+    def get_action(self, obs, epsilon):
+        pass
+
+    def update_network(self):
+        pass
 
     def train(self, num_episodes):
         epsilon = 0
@@ -92,9 +99,9 @@ class DQN(Algorithm):
                     action = random.choice(self.env.action_space)
                 else:
                     with torch.no_grad():
-                        state_tensor = torch.flatten(torch.tensor(obs, dtype=torch.float32, device='cuda'))
+                        state = torch.flatten(torch.tensor(obs, dtype=torch.float32, device=self.device))
 
-                        action = argmax(self.policy_network(state_tensor).to('cpu'))
+                        action = argmax(self.policy_network(state).to('cpu'))
 
                 reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
                 next_state = np.array(obs, dtype=float)

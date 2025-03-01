@@ -106,14 +106,14 @@ class Game(pygameAI):
     # returning torch tensor
     def get_rgb_array(self):
         # return pygame.surfarray.array3d(self.screen)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         array = pygame.surfarray.array3d(self.screen)
-        array = torch.tensor(array, dtype=torch.float32, device='cuda')
+
+        array = torch.tensor(array, dtype=torch.float32, device=device)
         array = array.permute(2, 0, 1).unsqueeze(0)
-        print(array.shape)
         avg_pool = torch.nn.AvgPool2d(kernel_size=16, stride=16)
         array = avg_pool(array)
-        print(array.shape)
-        array.to('cpu')
+        # array.to('cpu')
 
         return array
 

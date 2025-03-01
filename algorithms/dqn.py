@@ -1,11 +1,9 @@
-# ChatGPT assisted
+# Have everything on torch instead of numpy to avoid compatibility issues.
 
 import torch
 import random
-import numpy as np
 from math import prod
 from collections import deque
-from utils import argmax
 from algorithms.algorithm import Algorithm
 
 class QNetwork(torch.nn.Module):
@@ -20,12 +18,12 @@ class QNetwork(torch.nn.Module):
         )
 
     def forward(self, x):
-        # print(x.shape)
         return self.fc(x)
     
 class ReplayBuffer:
     def __init__(self, size):
         self.buffer = deque(maxlen=size)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def push(self, state, action, reward, next_state, done):
         self.buffer.append((state, action, reward, next_state, done))
@@ -33,12 +31,13 @@ class ReplayBuffer:
     def sample(self, batch_size):
         batch = random.sample(self.buffer, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
+
         return (
-            np.array(states),
-            np.array(actions),
-            np.array(rewards),
-            np.array(next_states),
-            np.array(dones),
+            torch.stack(states),
+            torch.tensor(actions, dtype=torch.long, device=self.device),
+            torch.tensor(rewards, dtype=torch.float32, device=self.device),
+            torch.stack(next_states),
+            torch.tensor(dones, dtype=torch.uint8, device=self.device) 
         )
 
     def __len__(self):
@@ -64,14 +63,12 @@ class DQN(Algorithm):
         pass
 
     def train(self, num_episodes):
-        epsilon = 0
-
         gamma = 0.99
         lr = 1e-3
 
         epsilon = 1.0
         epsilon_decay = 0.995
-        epsilon_min = 0.
+        epsilon_min = 0
         target_update_freq = 10
         
         buffer_size = 12000
@@ -86,25 +83,21 @@ class DQN(Algorithm):
             ep_reward = 0
             _, _, obs, done, _ = self.env.reset(render=True)
 
-            # state = torch.tensor(obs, dtype=torch.float32, device='cuda')
-            # state = state.permute(2, 0, 1).unsqueeze(0)
-            # print(state.shape)
-            # avg_pool = torch.nn.AvgPool2d(kernel_size=16, stride=16)
-            # output = avg_pool(state)
-            # print(output.shape)
-            # quit()
+            # if performance is bad, test execution time with and without clone
+            state = torch.flatten(obs)
 
             while not done:
                 if random.random() < epsilon:
                     action = random.choice(self.env.action_space)
+                    action = torch.tensor(action, device=self.device)
                 else:
                     with torch.no_grad():
-                        state = torch.flatten(torch.tensor(obs, dtype=torch.float32, device=self.device))
-
-                        action = argmax(self.policy_network(state).to('cpu'))
+                        action = torch.argmax(self.policy_network(state))
 
                 reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
-                next_state = np.array(obs, dtype=float)
+
+                next_state = torch.flatten(obs)
+
                 ep_reward += reward
 
                 replay_buffer.push(state, action, reward, next_state, done)
@@ -112,16 +105,6 @@ class DQN(Algorithm):
 
                 if len(replay_buffer) >= batch_size:
                     states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
-
-                    states = torch.tensor(states, dtype=torch.float32).to(self.device)
-                    actions = torch.tensor(actions, dtype=torch.long).to(self.device)
-                    rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
-                    next_states = torch.tensor(next_states, dtype=torch.float32).to(self.device)
-                    dones = torch.tensor(dones, dtype=torch.float32).to(self.device)
-
-                    # flatten to fit the network
-                    states = torch.flatten(states, start_dim=1)
-                    next_states = torch.flatten(next_states, start_dim=1)
 
                     q_values = self.policy_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
                     with torch.no_grad():
@@ -133,7 +116,7 @@ class DQN(Algorithm):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-
+                
             epsilon = max(epsilon_min, epsilon * epsilon_decay)
 
             if ep % target_update_freq == 0:

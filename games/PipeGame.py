@@ -4,6 +4,7 @@ import pygame.freetype
 from games.pygameai import pygameAI
 from objects import Ship, Pipe
 from algorithms.genetic import Algorithm
+from utils import intersects
 
 class PipeGame(pygameAI):
     def __init__(self, use_values_for_obs=False):
@@ -60,18 +61,6 @@ class PipeGame(pygameAI):
             pygame.draw.rect(self.screen, "black", pipe.toprect)
             pygame.draw.rect(self.screen, "black", pipe.botrect)
 
-    def intersects(self, rect, r, center):
-        circle_distance_x = abs(center[0]-rect.centerx)
-        circle_distance_y = abs(center[1]-rect.centery)
-        if circle_distance_x > rect.w/2.0+r or circle_distance_y > rect.h/2.0+r:
-            return False
-        if circle_distance_x <= rect.w/2.0 or circle_distance_y <= rect.h/2.0:
-            return True
-        corner_x = circle_distance_x-rect.w/2.0
-        corner_y = circle_distance_y-rect.h/2.0
-        corner_distance_sq = corner_x**2.0 +corner_y**2.0
-        return corner_distance_sq <= r**2.0
-
     def get_nearest_pipe_info(self):
         if len(self.pipes) <= 0:
             return 0, self.window_height, self.window_width, 0
@@ -117,9 +106,9 @@ class PipeGame(pygameAI):
 
         return 0, 0, obs, False, None
 
-    def check_hit(self, player_pos):
+    def check_hit(self):
         for i, pipe in enumerate(self.pipes):
-            if self.intersects(pipe.toprect, self.player.radius, player_pos) or self.intersects(pipe.botrect, self.player.radius, player_pos):
+            if intersects(pipe.toprect, self.player.radius, self.player_pos) or intersects(pipe.botrect, self.player.radius, self.player_pos):
                 return True
         
         return False
@@ -180,7 +169,7 @@ class PipeGame(pygameAI):
         reward = 1 if self.overlap() else 0.01
         done = False
 
-        if self.check_hit(self.player_pos) or self.score > 100000:
+        if self.check_hit() or self.score > 100000:
             reward = -1
             done = True
             self.update_score()

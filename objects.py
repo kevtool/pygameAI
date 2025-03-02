@@ -58,3 +58,13 @@ class Pipe():
     
     def __del__(self):
         return
+    
+class Zone():
+    def __init__(self):
+        pass
+
+    def update_pos(self):
+        pass
+
+    def reset_pos(self):
+        pass

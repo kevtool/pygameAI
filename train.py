@@ -1,8 +1,8 @@
 import statistics
-from game import Game
+from games.PipeGame import PipeGame
 from algorithms.dqn import DQN
 
-game = Game()
+game = PipeGame()
 
 model = DQN(game)
 model.train(10000)

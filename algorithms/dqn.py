@@ -75,8 +75,8 @@ class DQN(Algorithm):
         lr = 1e-3
 
         self.epsilon = 1.0 # for get_action()
-        epsilon_decay = 0.995
-        epsilon_min = 0
+        epsilon_decay = 0.998
+        epsilon_min = 0.1
         target_update_freq = 10
         
         buffer_size = 12000
@@ -85,7 +85,7 @@ class DQN(Algorithm):
 
         optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=lr)
 
-        self.env.initiate_pygame()
+        self.env.initiate_pygame(game_speed = 600)
 
         for ep in range(num_episodes):
             ep_reward = 0
@@ -138,3 +138,6 @@ class DQN(Algorithm):
 
             print(f"Epsilon: {self.epsilon}")
             print(f"Episode {ep}, Reward: {ep_reward}")
+
+        # save model
+        torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")

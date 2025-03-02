@@ -1,5 +1,5 @@
 import statistics
-from game import Game
+from games.PipeGame import PipeGame
 from algorithms.genetic import Algorithm
 
 # check if get_desc_list is working
@@ -13,7 +13,7 @@ def next_gen_weight_test():
     starting_brains = 10
     brains_per_gen = 12
 
-    game = Game()
+    game = PipeGame()
     model = Algorithm(starting_brains)
 
     for index, brain_ in enumerate(model.brains):

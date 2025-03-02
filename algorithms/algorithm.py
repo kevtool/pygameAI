@@ -1,5 +1,5 @@
 import torch
-from pygameai import pygameAI
+from games.pygameai import pygameAI
 
 class Algorithm:
     def __init__(self, env):

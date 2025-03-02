@@ -1,5 +1,5 @@
 import statistics
-from game import Game
+from games.PipeGame import PipeGame
 from algorithms.genetic import GeneticAlgorithm
 
 starting_brains = 20
@@ -7,7 +7,7 @@ descendants_per_gen = 20
 generations = 10
 
 # Using in-game values instead of rgb values for observation
-game = Game(use_values_for_obs=True)
+game = PipeGame(use_values_for_obs=True)
 
 model = GeneticAlgorithm(starting_brains, game)
 model.train(generations, descendants_per_gen)

@@ -17,6 +17,11 @@ class FishingGame(pygameAI):
 
         # hp
         self.max_hp = 100
+        self.hp = self.max_hp
+
+        # scores
+        self.score = 0
+        self.highscore = 0
 
         self.set_obs_space('continuous', 
             (int(1280 / self.pool_factor), 
@@ -25,6 +30,10 @@ class FishingGame(pygameAI):
         )
 
         self.set_action_space('discrete', 2)
+
+    def update_score(self):
+        self.highscore = max(self.highscore, self.score)
+        self.score = 0
 
     def reset(self, render=False):
         if render:
@@ -39,7 +48,7 @@ class FishingGame(pygameAI):
 
         return 0, 0, obs, False, None
 
-    def step(self, action=None, mode='human'):
+    def step(self, action=None, mode='human', render=True):
         assert mode in ['human', 'ai']
 
         if mode == 'human':
@@ -61,10 +70,15 @@ class FishingGame(pygameAI):
             reward = 1
         else:
             reward = -1
+            self.hp -= 1
 
-        self.update_pipes()
+        done = False
+        if self.hp <= 0:
+            done = True
+            self.update_score()
+            self.reset(render=render)
 
-        return reward, ..., ..., ..., ...
+        return reward, ..., ..., ..., done
 
     def render(self):
         for event in pygame.event.get():

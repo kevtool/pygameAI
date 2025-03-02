@@ -59,9 +59,9 @@ class Pipe():
     def __del__(self):
         return
     
-class Zone():
-    def __init__(self):
-        pass
+class Zone(pygame.Rect):
+    def __init__(self, left, top, width, height):
+        super().__init__(left, top, width, height)
 
     def update_pos(self):
         pass

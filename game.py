@@ -88,16 +88,26 @@ class Game(pygameAI):
 
     def get_nearest_pipe_info(self):
         if len(self.pipes) <= 0:
-            return 0, self.window_height, self.window_width
+            return 0, self.window_height, self.window_width, 0
 
         for pipe in self.pipes:
             if pipe.pos + pipe.width > self.player_pos.x:
                 nearest_pipe_topend = pipe.topend
                 nearest_pipe_bottomend = pipe.bottomend
                 nearest_pipe_x = pipe.pos
+                pipe_width = pipe.width
                 break
 
-        return nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x
+        return nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x, pipe_width
+    
+    # calculate if player's x position overlaps with nearest pipe. Used for calculating rewards
+    def overlap(self) -> bool:
+        _, _, pipe_x, pipe_width = self.get_nearest_pipe_info()
+
+        if self.player_pos.x + self.player.radius > pipe_x and self.player_pos.x - self.player.radius < pipe_x + pipe_width:
+            return True
+        return False
+
 
     def update_score(self):
         self.highscore = max(self.highscore, self.score)
@@ -128,7 +138,7 @@ class Game(pygameAI):
         self.pipetick = 0
 
         if self.use_values_for_obs == True:
-            nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
+            nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x, _ = self.get_nearest_pipe_info()
             obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
         else:
             obs = self.get_rgb_array()
@@ -190,16 +200,16 @@ class Game(pygameAI):
 
         # new observation
         if self.use_values_for_obs == True:
-            nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x = self.get_nearest_pipe_info()
+            nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x, _ = self.get_nearest_pipe_info()
             obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
         else:
             obs = self.get_rgb_array()
         
-        reward = 1
+        reward = 1 if self.overlap() else 0.01
         done = False
 
         if self.check_hit(self.player_pos) or self.score > 100000:
-            reward = -100
+            reward = -1
             done = True
             self.update_score()
             self.reset(render=render)

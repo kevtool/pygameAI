@@ -56,8 +56,16 @@ class DQN(Algorithm):
         self.target_network = QNetwork(self.inputs, self.outputs).to(self.device)
 
     # some functions to consider
-    def get_action(self, obs, epsilon):
-        pass
+    def get_action(self, state):
+
+        if random.random() < self.epsilon:
+            action = random.choice(self.env.action_space)
+            action = torch.tensor(action, device=self.device)
+        else:
+            with torch.no_grad():
+                action = torch.argmax(self.policy_network(state))
+
+        return action
 
     def update_network(self):
         pass
@@ -66,13 +74,13 @@ class DQN(Algorithm):
         gamma = 0.99
         lr = 1e-3
 
-        epsilon = 1.0
+        self.epsilon = 1.0 # for get_action()
         epsilon_decay = 0.995
         epsilon_min = 0
         target_update_freq = 10
         
         buffer_size = 12000
-        batch_size = 2
+        batch_size = 32
         replay_buffer = ReplayBuffer(buffer_size)
 
         optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=lr)
@@ -86,13 +94,10 @@ class DQN(Algorithm):
             # if performance is bad, test execution time with and without clone
             state = torch.flatten(obs)
 
+            steps = 0
+
             while not done:
-                if random.random() < epsilon:
-                    action = random.choice(self.env.action_space)
-                    action = torch.tensor(action, device=self.device)
-                else:
-                    with torch.no_grad():
-                        action = torch.argmax(self.policy_network(state))
+                action = self.get_action(state)
 
                 reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
 
@@ -113,13 +118,23 @@ class DQN(Algorithm):
 
                     # Loss and optimization
                     loss = torch.nn.MSELoss()(q_values, targets)
+                    
+                    steps += 1
+                    if steps % 50 == 0:
+                        print(f"Loss: {loss.item()}")
+
                     optimizer.zero_grad()
                     loss.backward()
+
+                    # gradient clipping to avoid gradient explosion
+                    torch.nn.utils.clip_grad_norm_(self.policy_network.parameters(), max_norm=1.0)
+
                     optimizer.step()
                 
-            epsilon = max(epsilon_min, epsilon * epsilon_decay)
+            self.epsilon = max(epsilon_min, self.epsilon * epsilon_decay)
 
             if ep % target_update_freq == 0:
                 self.target_network.load_state_dict(self.policy_network.state_dict())
 
+            print(f"Epsilon: {self.epsilon}")
             print(f"Episode {ep}, Reward: {ep_reward}")

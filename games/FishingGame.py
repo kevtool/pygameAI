@@ -1,6 +1,6 @@
 import pygame
 from games.pygameai import pygameAI
-from objects import Ship, Zone
+from objects import Ship, MovingZone
 from utils import intersects
 
 class FishingGame(pygameAI):
@@ -9,19 +9,22 @@ class FishingGame(pygameAI):
         self.window_height = 720
 
         # zone
-        self.zone = Zone()
+        self.zone = MovingZone(self.window_width, self.window_height, width=50, height=200)
 
         # player
         self.player = Ship(self.window_height)
         self.player_pos = pygame.Vector2(self.window_width / 2, self.window_height - self.player.radius)
 
         # hp
-        self.max_hp = 100
+        self.max_hp = 200
         self.hp = self.max_hp
 
         # scores
         self.score = 0
         self.highscore = 0
+
+        # downsize the screen so models can store states more efficiently
+        self.pool_factor = 16
 
         self.set_obs_space('continuous', 
             (int(1280 / self.pool_factor), 
@@ -61,8 +64,8 @@ class FishingGame(pygameAI):
             self.player.update_pos('up')
         else:
             self.player.update_pos('down')
-
         self.player_pos.y = self.player.pos
+        self.zone.update_pos(epsilon=0.01)
 
         self.score += 1
 
@@ -72,30 +75,35 @@ class FishingGame(pygameAI):
             reward = -1
             self.hp -= 1
 
+        if render:
+            self.render()
+
+        obs = self.get_rgb_array()
+
         done = False
         if self.hp <= 0:
             done = True
             self.update_score()
             self.reset(render=render)
 
-        return reward, ..., ..., ..., done
+        return reward, 0, obs, done, None
 
     def render(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
-
         self.screen.fill("purple")
 
+        pygame.draw.rect(self.screen, "black", self.zone)
         pygame.draw.circle(self.screen, "red", self.player_pos, self.player.radius)
 
         self.font.render_to(self.screen, (10, 10), "Score: {}".format(self.score), (255, 255, 255))
         self.font.render_to(self.screen, (10, 40), "Highscore: {}".format(self.highscore), (255, 255, 255))
+        self.font.render_to(self.screen, (10, 70), "HP: {}".format(self.hp), (255, 255, 255))
         pygame.display.flip()
 
         self.clock.tick(self.game_speed)
-        pass
 
     def run(self, game_speed=60):
         self.initiate_pygame()
@@ -104,7 +112,7 @@ class FishingGame(pygameAI):
         self.game_speed = game_speed
 
         while True:
-            _, _, _, done, _= self.step(mode="human", render=True)
+            _, _, _, done, _ = self.step(mode="human", render=True)
 
             if done:
                 break

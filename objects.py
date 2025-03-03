@@ -59,12 +59,36 @@ class Pipe():
     def __del__(self):
         return
     
-class Zone(pygame.Rect):
-    def __init__(self, left, top, width, height):
+class MovingZone(pygame.Rect):
+    def __init__(self, window_width, window_height, width, height, direction='up'):
+        self.window_height = window_height
+
+        left = window_width / 2 - width / 2
+        top = window_height - height
         super().__init__(left, top, width, height)
 
-    def update_pos(self):
-        pass
+        self.init_left = left
+        self.init_top = top
+
+        self.init_direction = direction
+        self.direction = direction
+
+    # epsilon: chance of direction change
+    def update_pos(self, epsilon=0.0):
+        if self.top <= 0:
+            self.direction = 'down'
+        elif self.bottom >= self.window_height:
+            self.direction = 'up'
+
+        elif random.random() < epsilon:
+            self.direction = 'up' if self.direction == 'down' else 'down'
+
+        if self.direction == 'up':
+            self.top -= 4
+        else:
+            self.top += 4
 
     def reset_pos(self):
-        pass
+        self.left = self.init_left
+        self.top = self.init_top
+        self.direction = self.init_direction

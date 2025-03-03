@@ -2,6 +2,7 @@
 
 import torch
 import random
+import pygame
 from math import prod
 from collections import deque
 from algorithms.algorithm import Algorithm
@@ -85,59 +86,60 @@ class DQN(Algorithm):
 
         optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=lr)
 
-        self.env.initiate_pygame(game_speed = 600)
+        self.env.initiate_pygame(game_speed = 120)
 
-        for ep in range(num_episodes):
-            ep_reward = 0
-            _, _, obs, done, _ = self.env.reset(render=True)
+        try:
+            for ep in range(num_episodes):
+                ep_reward = 0
+                _, _, obs, done, _ = self.env.reset(render=True)
 
-            # if performance is bad, test execution time with and without clone
-            state = torch.flatten(obs)
+                # if performance is bad, test execution time with and without clone
+                state = torch.flatten(obs)
 
-            steps = 0
+                steps = 0
 
-            while not done:
-                action = self.get_action(state)
+                while not done:
+                    action = self.get_action(state)
 
-                reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
+                    reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
 
-                next_state = torch.flatten(obs)
+                    next_state = torch.flatten(obs)
 
-                ep_reward += reward
+                    ep_reward += reward
 
-                replay_buffer.push(state, action, reward, next_state, done)
-                state = next_state
+                    replay_buffer.push(state, action, reward, next_state, done)
+                    state = next_state
 
-                if len(replay_buffer) >= batch_size:
-                    states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
+                    if len(replay_buffer) >= batch_size:
+                        states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
 
-                    q_values = self.policy_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-                    with torch.no_grad():
-                        next_q_values = self.target_network(next_states).max(dim=1)[0]
-                        targets = rewards + gamma * next_q_values * (1 - dones)
+                        q_values = self.policy_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+                        with torch.no_grad():
+                            next_q_values = self.target_network(next_states).max(dim=1)[0]
+                            targets = rewards + gamma * next_q_values * (1 - dones)
 
-                    # Loss and optimization
-                    loss = torch.nn.MSELoss()(q_values, targets)
+                        # Loss and optimization
+                        loss = torch.nn.MSELoss()(q_values, targets)
+                        
+                        steps += 1
+                        if steps % 50 == 0:
+                            print(f"Loss: {loss.item()}")
+
+                        optimizer.zero_grad()
+                        loss.backward()
+
+                        # gradient clipping to avoid gradient explosion
+                        torch.nn.utils.clip_grad_norm_(self.policy_network.parameters(), max_norm=1.0)
+
+                        optimizer.step()
                     
-                    steps += 1
-                    if steps % 50 == 0:
-                        print(f"Loss: {loss.item()}")
+                self.epsilon = max(epsilon_min, self.epsilon * epsilon_decay)
 
-                    optimizer.zero_grad()
-                    loss.backward()
+                if ep % target_update_freq == 0:
+                    self.target_network.load_state_dict(self.policy_network.state_dict())
 
-                    # gradient clipping to avoid gradient explosion
-                    torch.nn.utils.clip_grad_norm_(self.policy_network.parameters(), max_norm=1.0)
+                print(f"Epsilon: {self.epsilon}")
+                print(f"Episode {ep}, Reward: {ep_reward}")
 
-                    optimizer.step()
-                
-            self.epsilon = max(epsilon_min, self.epsilon * epsilon_decay)
-
-            if ep % target_update_freq == 0:
-                self.target_network.load_state_dict(self.policy_network.state_dict())
-
-            print(f"Epsilon: {self.epsilon}")
-            print(f"Episode {ep}, Reward: {ep_reward}")
-
-        # save model
-        torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")
+        finally:
+            torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")

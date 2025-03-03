@@ -1,3 +1,6 @@
+March 2 update:
+Not performing too well on the fishing game either. I still can't tell if my DQN implementation is correct or not. There are some elements in the environment (randomness, nature of the ship) that can add to the difficulty of learning the game. Next step is to design a game that DQN should do very well on.
+
 March 1 update:
 I've implemented DQN, but it doesn't seem to be learning the pipe game, even after reward augmentation. I suspect the problem is that rewards are too sparse. To test this hypothesis I'm building a second environment, the fishing game. Including previous actions in the observations can also be a factor.
 

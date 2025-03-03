@@ -175,3 +175,5 @@ cython_debug/
 
 test.py
 dqn_example.py
+
+*.pth

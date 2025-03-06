@@ -1,6 +1,5 @@
 import statistics
-from games.PipeGame import PipeGame
-from games.FishingGame import FishingGame
+from games import PipeGame, FishingGame
 from algorithms.dqn import DQN
 
 game = FishingGame()

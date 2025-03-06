@@ -1,5 +1,5 @@
 import statistics
-from games.PipeGame import PipeGame
+from games import PipeGame
 from algorithms.genetic import Algorithm
 
 # check if get_desc_list is working

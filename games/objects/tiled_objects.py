@@ -55,13 +55,16 @@ class TiledFood(TiledObject, pygame.Rect):
     def __init__(self, **kwargs):
         super(TiledFood, self).__init__(**kwargs)
     
-    def spawn(self, player_row, player_col):
-        self.tile_row = player_row
-        self.tile_col = player_col
+    def spawn(self, player_row=None, player_col=None):
+        row = player_row if player_row is not None else self.tile_row
+        col = player_row if player_row is not None else self.tile_col
 
-        while self.tile_row == player_row and self.tile_col == player_col:
-            self.tile_row = random.randint(0, self.tile_rows - 1)
-            self.tile_col = random.randint(0, self.tile_cols - 1)
+        while self.tile_row == row and self.tile_col == col:
+            row = random.randint(0, self.tile_rows - 1)
+            col = random.randint(0, self.tile_cols - 1)
+
+        self.tile_row = row
+        self.tile_col = col
     
         self.top = self.tile_row * self.tile_size
         self.left = self.tile_col * self.tile_size

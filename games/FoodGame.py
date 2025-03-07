@@ -36,7 +36,9 @@ class FoodGame(pygameAI):
             pygame.time.wait(int(30000 / self.game_speed))
 
         self.player.reset_pos()
-        self.food.spawn(self.player.tile_row, self.player.tile_col)
+        self.food.spawn()
+
+        self.time = 200
 
         obs = self.get_rgb_array()
 
@@ -59,8 +61,28 @@ class FoodGame(pygameAI):
 
         elif mode == 'ai':
             self.action = action
+        
+        reward = -0.1
+        done = False
 
         self.player.move()
+        if self.player.tile_row == self.food.tile_row and self.player.tile_col == self.food.tile_col:
+            reward = 1
+            self.score += 1
+            self.food.spawn()
+
+        if render:
+            self.render()
+        
+        obs = self.get_rgb_array()
+        self.time -= 1
+        if self.time <= 0:
+            done = True
+            self.update_score()
+            self.reset(render=render)
+        
+        return reward, 0, obs, done, None
+
 
     def render(self):
         for event in pygame.event.get():

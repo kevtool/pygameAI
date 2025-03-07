@@ -1,4 +1,4 @@
-from games import PipeGame, FishingGame
+from games import PipeGame, FishingGame, FoodGame
 
-game = FishingGame()
+game = FoodGame()
 game.run()

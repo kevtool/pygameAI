@@ -31,7 +31,7 @@ class TiledPlayer(TiledObject, pygame.Rect):
         super(TiledPlayer, self).__init__(**kwargs)
 
     def move(self, direction):
-
+        print(direction)
         match direction:
             case 0:
                 # move up

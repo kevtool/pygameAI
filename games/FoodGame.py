@@ -1,5 +1,5 @@
 import pygame
-from games import pygameAI
+from games.pygameai import pygameAI
 from games.objects import TiledPlayer, TiledFood
 
 class FoodGame(pygameAI):
@@ -40,6 +40,8 @@ class FoodGame(pygameAI):
 
         self.time = 200
 
+        self.action = 0
+
         obs = self.get_rgb_array()
 
         return 0, 0, obs, False, None
@@ -65,7 +67,7 @@ class FoodGame(pygameAI):
         reward = -0.1
         done = False
 
-        self.player.move()
+        self.player.move(self.action)
         if self.player.tile_row == self.food.tile_row and self.player.tile_col == self.food.tile_col:
             reward = 1
             self.score += 1
@@ -91,11 +93,15 @@ class FoodGame(pygameAI):
 
         self.screen.fill("purple")
 
+        pygame.draw.ellipse(self.screen, (0, 255, 0), self.player)
+        pygame.draw.rect(self.screen, (255, 0, 0), self.food)
+
         self.font.render_to(self.screen, (10, 10), "Score: {}".format(self.score), (255, 255, 255))
         self.font.render_to(self.screen, (10, 40), "Highscore: {}".format(self.highscore), (255, 255, 255))
+        self.font.render_to(self.screen, (10, 70), "Highscore: {}".format(self.time), (255, 255, 255))
         pygame.display.flip()
 
-        pass
+        self.clock.tick(self.game_speed)
 
     def run(self, game_speed=60):
         self.initiate_pygame()

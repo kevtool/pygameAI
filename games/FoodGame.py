@@ -1,5 +1,6 @@
 import pygame
 from games import pygameAI
+from games.objects import TiledPlayer, TiledFood
 
 class FoodGame(pygameAI):
     def __init__(self):
@@ -19,6 +20,11 @@ class FoodGame(pygameAI):
              3)
         )
 
+        self.tile_size = 20
+        self.player = TiledPlayer(tile_rows=3, tile_cols=20, tile_size=64)
+        self.food = TiledFood(tile_rows=3, tile_cols=20, tile_size=64)
+        self.food.spawn(self.player.tile_row, self.player.tile_col)
+
         self.set_action_space('discrete', 4)
 
     def update_score(self):
@@ -29,6 +35,9 @@ class FoodGame(pygameAI):
         if render:
             pygame.time.wait(int(30000 / self.game_speed))
 
+        self.player.reset_pos()
+        self.food.spawn(self.player.tile_row, self.player.tile_col)
+
         obs = self.get_rgb_array()
 
         return 0, 0, obs, False, None
@@ -38,9 +47,33 @@ class FoodGame(pygameAI):
 
         if mode == 'human':
             keys = pygame.key.get_pressed()
-            action_ = 1 if keys[pygame.K_SPACE] else 0
+
+            if keys[pygame.K_w]:
+                self.action = 0
+            elif keys[pygame.K_a]:
+                self.action = 1
+            elif keys[pygame.K_s]:
+                self.action = 2
+            elif keys[pygame.K_d]:
+                self.action = 3
+
         elif mode == 'ai':
-            action_ = action
+            self.action = action
+
+        self.player.move()
+
+    def render(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        self.screen.fill("purple")
+
+        self.font.render_to(self.screen, (10, 10), "Score: {}".format(self.score), (255, 255, 255))
+        self.font.render_to(self.screen, (10, 40), "Highscore: {}".format(self.highscore), (255, 255, 255))
+        pygame.display.flip()
+
+        pass
 
     def run(self, game_speed=60):
         self.initiate_pygame()

@@ -68,7 +68,7 @@ class DQN(Algorithm):
     # some functions to consider
     def get_action(self, state):
 
-        if random.random() < self.epsilon:
+        if self.infer == 0 and random.random() < self.epsilon:
             action = random.choice(self.env.action_space)
             action = torch.tensor(action, device=self.device)
         else:
@@ -80,8 +80,7 @@ class DQN(Algorithm):
     def update_network(self):
         pass
 
-    def train(self, num_episodes, enable_wandb=True):
-
+    def train(self, num_episodes, enable_wandb=True, early_stopping_config=None):
         if enable_wandb == True:
             wandb.init(project="pygameAI", name="CartPole_DQN")
 
@@ -102,6 +101,16 @@ class DQN(Algorithm):
         self.env.initiate_pygame(game_speed = 120)
 
         total_timesteps = 0
+
+        rolling_rewards = []
+        self.infer = 0
+        if early_stopping_config is not None:
+            early_stopping = True
+            init_threshold = 420
+            test_threshold = 500
+            test_episodes = 10
+
+
 
         try:
             for ep in range(num_episodes):
@@ -124,7 +133,7 @@ class DQN(Algorithm):
 
                     total_timesteps += 1
 
-                    if len(replay_buffer) >= batch_size:
+                    if self.infer == 0 and len(replay_buffer) >= batch_size:
                         states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
 
                         q_values = self.policy_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
@@ -156,6 +165,44 @@ class DQN(Algorithm):
 
                 wandb.log({"episode": ep, "total_reward": ep_reward})
 
+                rolling_rewards.append(ep_reward)
+                if (len(rolling_rewards) > 10):
+                    rolling_rewards = rolling_rewards[1:]
+                    rolling_average = rolling_rewards / 10
+                
+                if early_stopping and rolling_average >= init_threshold:
+                    self.infer = test_episodes
+
+                if self.infer == 1 and rolling_average >= test_threshold:
+                    break
+                
+                self.infer = max(0, self.infer - 1)
+
         finally:
             wandb.finish()
-            # torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")
+            torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")
+
+    def test(self, num_episodes):
+        self.policy_network.load_state_dict(torch.load("policy_network_weights.pth"))
+
+        self.epsilon = 0
+
+        for ep in range(num_episodes):
+            ep_reward = 0
+            _, _, obs, done, _ = self.env.reset(render=True)
+
+            state = torch.flatten(obs)
+
+            while not done:
+                action = self.get_action(state)
+
+                reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
+
+                next_state = torch.flatten(obs)
+
+                ep_reward += reward
+
+                state = next_state
+
+
+            print(f"Episode {ep}, Reward: {ep_reward}")

@@ -177,3 +177,4 @@ test.py
 dqn_example.py
 
 *.pth
+wandb/

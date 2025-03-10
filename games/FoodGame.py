@@ -38,7 +38,7 @@ class FoodGame(pygameAI):
         self.player.reset_pos()
         self.food.spawn()
 
-        self.time = 200
+        self.time = 300
 
         self.action = 0
 
@@ -98,12 +98,12 @@ class FoodGame(pygameAI):
 
         self.font.render_to(self.screen, (10, 10), "Score: {}".format(self.score), (255, 255, 255))
         self.font.render_to(self.screen, (10, 40), "Highscore: {}".format(self.highscore), (255, 255, 255))
-        self.font.render_to(self.screen, (10, 70), "Highscore: {}".format(self.time), (255, 255, 255))
+        self.font.render_to(self.screen, (10, 70), "Time: {}".format(self.time), (255, 255, 255))
         pygame.display.flip()
 
         self.clock.tick(self.game_speed)
 
-    def run(self, game_speed=60):
+    def run(self, game_speed=15):
         self.initiate_pygame()
         self.reset(render=True)
 

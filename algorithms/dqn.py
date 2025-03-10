@@ -3,6 +3,7 @@
 import torch
 import random
 import pygame
+import wandb
 from math import prod
 from collections import deque
 from algorithms.algorithm import Algorithm
@@ -45,16 +46,24 @@ class ReplayBuffer:
         return len(self.buffer)
 
 class DQN(Algorithm):
-    def __init__(self, env):
+    def __init__(self, env, enable_wandb=True):
         super().__init__(env)
 
-        self.inputs = prod(self.env.obs_shape)
+        try:
+            self.inputs = prod(self.env.obs_shape)
+        except TypeError:
+            self.inputs = self.env.obs_shape
+            
         self.outputs = self.env.action_shape
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         self.policy_network = QNetwork(self.inputs, self.outputs).to(self.device)
         self.target_network = QNetwork(self.inputs, self.outputs).to(self.device)
+
+        if enable_wandb == True:
+            wandb.init()
+            wandb.watch(self.policy_network , log="all")
 
     # some functions to consider
     def get_action(self, state):
@@ -71,7 +80,11 @@ class DQN(Algorithm):
     def update_network(self):
         pass
 
-    def train(self, num_episodes):
+    def train(self, num_episodes, enable_wandb=True):
+
+        if enable_wandb == True:
+            wandb.init(project="pygameAI", name="CartPole_DQN")
+
         gamma = 0.99
         lr = 1e-3
 
@@ -88,15 +101,14 @@ class DQN(Algorithm):
 
         self.env.initiate_pygame(game_speed = 120)
 
+        total_timesteps = 0
+
         try:
             for ep in range(num_episodes):
                 ep_reward = 0
                 _, _, obs, done, _ = self.env.reset(render=True)
 
-                # if performance is bad, test execution time with and without clone
                 state = torch.flatten(obs)
-
-                steps = 0
 
                 while not done:
                     action = self.get_action(state)
@@ -110,6 +122,8 @@ class DQN(Algorithm):
                     replay_buffer.push(state, action, reward, next_state, done)
                     state = next_state
 
+                    total_timesteps += 1
+
                     if len(replay_buffer) >= batch_size:
                         states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
 
@@ -120,10 +134,8 @@ class DQN(Algorithm):
 
                         # Loss and optimization
                         loss = torch.nn.MSELoss()(q_values, targets)
-                        
-                        steps += 1
-                        if steps % 50 == 0:
-                            print(f"Loss: {loss.item()}")
+
+                        wandb.log({"reward": reward, "loss": loss})
 
                         optimizer.zero_grad()
                         loss.backward()
@@ -133,13 +145,17 @@ class DQN(Algorithm):
 
                         optimizer.step()
                     
-                self.epsilon = max(epsilon_min, self.epsilon * epsilon_decay)
+                        if (total_timesteps % 50 == 0):
+                            self.epsilon = max(epsilon_min, self.epsilon * epsilon_decay)
 
                 if ep % target_update_freq == 0:
                     self.target_network.load_state_dict(self.policy_network.state_dict())
 
-                print(f"Epsilon: {self.epsilon}")
+                # print(f"Epsilon: {self.epsilon}")
                 print(f"Episode {ep}, Reward: {ep_reward}")
 
+                wandb.log({"episode": ep, "total_reward": ep_reward})
+
         finally:
-            torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")
+            wandb.finish()
+            # torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")

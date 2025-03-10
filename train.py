@@ -1,8 +1,9 @@
 import statistics
-from games import PipeGame, FishingGame
+from games import PipeGame, FishingGame, FoodGame
+from games.CartPole import CartPole
 from algorithms.dqn import DQN
 
-game = FishingGame()
+game = CartPole()
 
 model = DQN(game)
 model.train(10000)

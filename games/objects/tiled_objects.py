@@ -23,7 +23,10 @@ class TiledObject:
         self.tile_row = self.init_row
         self.tile_col = self.init_col
 
-        self.top = self.tile_row * self.tile_size
+        self.set_pos()
+
+    def set_pos(self):
+        self.top = 100 + self.tile_row * self.tile_size
         self.left = self.tile_col * self.tile_size
 
 class TiledPlayer(TiledObject, pygame.Rect):
@@ -31,7 +34,6 @@ class TiledPlayer(TiledObject, pygame.Rect):
         super(TiledPlayer, self).__init__(**kwargs)
 
     def move(self, direction):
-        print(direction)
         match direction:
             case 0:
                 # move up
@@ -48,8 +50,7 @@ class TiledPlayer(TiledObject, pygame.Rect):
             case _:
                 raise ValueError('Invalid direction value')
 
-        self.top = self.tile_row * self.tile_size
-        self.left = self.tile_col * self.tile_size
+        self.set_pos()
 
 class TiledFood(TiledObject, pygame.Rect):
     def __init__(self, **kwargs):
@@ -66,5 +67,4 @@ class TiledFood(TiledObject, pygame.Rect):
         self.tile_row = row
         self.tile_col = col
     
-        self.top = self.tile_row * self.tile_size
-        self.left = self.tile_col * self.tile_size
+        self.set_pos()

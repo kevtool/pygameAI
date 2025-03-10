@@ -10,6 +10,8 @@ class CartPole(pygameAI):
         self.set_action_space('discrete', 2)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+        self.name = "CartPole"
+
 
     def initiate_pygame(self, game_speed=60):
         x = 1

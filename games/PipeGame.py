@@ -44,6 +44,8 @@ class PipeGame(pygameAI):
 
         self.set_action_space('discrete', 2)
 
+        self.name = "PipeGame"
+
     def add_pipe(self):
         pipe = Pipe(self.window_width, self.window_height)
         self.pipes.append(pipe)

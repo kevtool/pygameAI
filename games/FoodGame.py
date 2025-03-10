@@ -27,6 +27,8 @@ class FoodGame(pygameAI):
 
         self.set_action_space('discrete', 4)
 
+        self.name = "FoodGame"
+
     def update_score(self):
         self.highscore = max(self.highscore, self.score)
         self.score = 0

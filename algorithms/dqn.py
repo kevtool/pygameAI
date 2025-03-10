@@ -4,6 +4,7 @@ import torch
 import random
 import pygame
 import wandb
+from datetime import datetime
 from math import prod
 from collections import deque
 from algorithms.algorithm import Algorithm
@@ -61,6 +62,7 @@ class DQN(Algorithm):
         self.policy_network = QNetwork(self.inputs, self.outputs).to(self.device)
         self.target_network = QNetwork(self.inputs, self.outputs).to(self.device)
 
+        self.enable_wandb = enable_wandb
         if enable_wandb == True:
             wandb.init()
             wandb.watch(self.policy_network , log="all")
@@ -80,8 +82,8 @@ class DQN(Algorithm):
     def update_network(self):
         pass
 
-    def train(self, num_episodes, enable_wandb=True, early_stopping_config=None):
-        if enable_wandb == True:
+    def train(self, num_episodes, early_stopping_config=None):
+        if self.enable_wandb == True:
             wandb.init(project="pygameAI", name="CartPole_DQN")
 
         gamma = 0.99
@@ -106,11 +108,10 @@ class DQN(Algorithm):
         self.infer = 0
         if early_stopping_config is not None:
             early_stopping = True
-            init_threshold = 420
-            test_threshold = 500
-            test_episodes = 10
-
-
+            init_threshold, test_threshold, test_episodes = vars(early_stopping_config).values()
+            print(init_threshold, test_threshold, test_episodes)
+        else:
+            early_stopping = False
 
         try:
             for ep in range(num_episodes):
@@ -144,7 +145,8 @@ class DQN(Algorithm):
                         # Loss and optimization
                         loss = torch.nn.MSELoss()(q_values, targets)
 
-                        wandb.log({"reward": reward, "loss": loss})
+                        if self.enable_wandb:
+                            wandb.log({"reward": reward, "loss": loss})
 
                         optimizer.zero_grad()
                         loss.backward()
@@ -161,27 +163,41 @@ class DQN(Algorithm):
                     self.target_network.load_state_dict(self.policy_network.state_dict())
 
                 # print(f"Epsilon: {self.epsilon}")
-                print(f"Episode {ep}, Reward: {ep_reward}")
+                if self.infer == 0:
+                    print(f"Episode {ep}, Reward: {ep_reward}")
+                else:
+                    print(f"Inferring Episode {ep}, Reward: {ep_reward}")
 
-                wandb.log({"episode": ep, "total_reward": ep_reward})
+                if self.enable_wandb:
+                    wandb.log({"episode": ep, "total_reward": ep_reward})
 
                 rolling_rewards.append(ep_reward)
                 if (len(rolling_rewards) > 10):
                     rolling_rewards = rolling_rewards[1:]
-                    rolling_average = rolling_rewards / 10
+                    rolling_average = sum(rolling_rewards) / 10
+                else:
+                    rolling_average = None
                 
-                if early_stopping and rolling_average >= init_threshold:
+                if early_stopping and rolling_average and rolling_average >= init_threshold and self.infer == 0:
                     self.infer = test_episodes
 
-                if self.infer == 1 and rolling_average >= test_threshold:
+                if self.infer == 1 and rolling_average and rolling_average >= test_threshold:
+                    print('test passed')
                     break
                 
                 self.infer = max(0, self.infer - 1)
 
         finally:
-            wandb.finish()
-            torch.save(self.policy_network.state_dict(), "policy_network_weights.pth")
+            if self.enable_wandb:
+                wandb.finish()
+            current_time = datetime.today().strftime('%Y_%m_%d_%H_%M_%S_')
 
+            try:
+                torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + self.env.name + "_DQN.pth")
+            except AttributeError:
+                torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + "_DQN.pth")
+
+                
     def test(self, num_episodes):
         self.policy_network.load_state_dict(torch.load("policy_network_weights.pth"))
 

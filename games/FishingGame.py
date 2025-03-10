@@ -34,6 +34,8 @@ class FishingGame(pygameAI):
 
         self.set_action_space('discrete', 2)
 
+        self.name = "FishingGame"
+
     def update_score(self):
         self.highscore = max(self.highscore, self.score)
         self.score = 0

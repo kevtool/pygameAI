@@ -179,7 +179,7 @@ class DQN(Algorithm):
                     rolling_average = None
                 
                 if early_stopping and rolling_average and rolling_average >= init_threshold and self.infer == 0:
-                    self.infer = test_episodes
+                    self.infer = test_episodes + 1
 
                 if self.infer == 1 and rolling_average and rolling_average >= test_threshold:
                     print('test passed')

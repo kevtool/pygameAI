@@ -8,6 +8,7 @@ from utils import intersects
 
 class PipeGame(pygameAI):
     def __init__(self, use_values_for_obs=False):
+        super().__init__()
         self.window_width = 1280
         self.window_height = 720
 
@@ -103,6 +104,7 @@ class PipeGame(pygameAI):
         if self.use_values_for_obs == True:
             nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x, _ = self.get_nearest_pipe_info()
             obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+            obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
         else:
             obs = self.get_rgb_array()
 
@@ -165,6 +167,7 @@ class PipeGame(pygameAI):
         if self.use_values_for_obs == True:
             nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x, _ = self.get_nearest_pipe_info()
             obs = self.normalize_values(self.player_pos.y, nearest_pipe_topend, nearest_pipe_bottomend, nearest_pipe_x)
+            obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
         else:
             obs = self.get_rgb_array()
         

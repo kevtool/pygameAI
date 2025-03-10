@@ -3,7 +3,7 @@ import torch
 
 class pygameAI():
     def __init__(self):
-        pass
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def initiate_pygame(self, game_speed=60):
         pygame.init()
@@ -22,10 +22,9 @@ class pygameAI():
     # returning torch tensor
     def get_rgb_array(self):
         # return pygame.surfarray.array3d(self.screen)
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         array = pygame.surfarray.array3d(self.screen)
 
-        array = torch.tensor(array, dtype=torch.float32, device=device)
+        array = torch.tensor(array, dtype=torch.float32, device=self.device)
         array = array.permute(2, 0, 1).unsqueeze(0)
         avg_pool = torch.nn.AvgPool2d(kernel_size=self.pool_factor, stride=self.pool_factor)
         array = avg_pool(array)

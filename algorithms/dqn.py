@@ -70,7 +70,7 @@ class DQN(Algorithm):
     # some functions to consider
     def get_action(self, state):
 
-        if self.infer == 0 and random.random() < self.epsilon:
+        if  random.random() < self.epsilon and self.infer == 0:
             action = random.choice(self.env.action_space)
             action = torch.tensor(action, device=self.device)
         else:
@@ -82,7 +82,7 @@ class DQN(Algorithm):
     def update_network(self):
         pass
 
-    def train(self, num_episodes, early_stopping_config=None):
+    def train(self, num_episodes, timesteps_per_decay=50, speed=120, early_stopping_config=None):
         if self.enable_wandb == True:
             wandb.init(project="pygameAI", name="CartPole_DQN")
 
@@ -100,7 +100,7 @@ class DQN(Algorithm):
 
         optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=lr)
 
-        self.env.initiate_pygame(game_speed = 120)
+        self.env.initiate_pygame(game_speed = speed)
 
         total_timesteps = 0
 
@@ -156,7 +156,7 @@ class DQN(Algorithm):
 
                         optimizer.step()
                     
-                        if (total_timesteps % 50 == 0):
+                        if (total_timesteps % timesteps_per_decay == 0):
                             self.epsilon = max(epsilon_min, self.epsilon * epsilon_decay)
 
                 if ep % target_update_freq == 0:
@@ -169,7 +169,7 @@ class DQN(Algorithm):
                     print(f"Inferring Episode {ep}, Reward: {ep_reward}")
 
                 if self.enable_wandb:
-                    wandb.log({"episode": ep, "total_reward": ep_reward})
+                    wandb.log({"episode": ep, "total_reward": ep_reward, "epsilon": self.epsilon})
 
                 rolling_rewards.append(ep_reward)
                 if (len(rolling_rewards) > 10):
@@ -198,10 +198,12 @@ class DQN(Algorithm):
                 torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + "_DQN.pth")
 
                 
-    def test(self, num_episodes):
-        self.policy_network.load_state_dict(torch.load("policy_network_weights.pth"))
+    def test(self, path, num_episodes=10):
+        self.policy_network.load_state_dict(torch.load(path))
 
         self.epsilon = 0
+
+        self.env.initiate_pygame(game_speed = 60)
 
         for ep in range(num_episodes):
             ep_reward = 0

@@ -2,7 +2,6 @@
 
 import torch
 import random
-import pygame
 import wandb
 from datetime import datetime
 from math import prod
@@ -70,7 +69,7 @@ class DQN(Algorithm):
     # some functions to consider
     def get_action(self, state):
 
-        if  random.random() < self.epsilon and self.infer == 0:
+        if  random.random() < self.epsilon and self.inferring == False:
             action = random.choice(self.env.action_space)
             action = torch.tensor(action, device=self.device)
         else:
@@ -82,20 +81,36 @@ class DQN(Algorithm):
     def update_network(self):
         pass
 
-    def train(self, num_episodes, timesteps_per_decay=50, speed=120, early_stopping_config=None):
+    def train(self, num_episodes, timesteps_per_decay=50, speed=120, config=None, early_stopping_config=None):
         if self.enable_wandb == True:
             wandb.init(project="pygameAI", name="CartPole_DQN")
 
+
+        # DQN Config
         gamma = 0.99
         lr = 1e-3
-
         self.epsilon = 1.0 # for get_action()
         epsilon_decay = 0.998
         epsilon_min = 0.1
         target_update_freq = 10
-        
         buffer_size = 12000
         batch_size = 32
+
+        if config is not None:
+            gamma, lr, epsilon_decay, epsilon_min, target_update_freq, _, _, timesteps_per_decay, buffer_size, batch_size = vars(config).values()
+
+
+        # Early Stopping Config
+        rolling_rewards = []
+        self.inferring = False
+        cooldown = 0
+        if early_stopping_config is not None:
+            early_stopping = True
+            init_threshold, init_episodes, self.test_threshold, self.test_episodes, self.cooldown = vars(early_stopping_config).values()
+        else:
+            early_stopping = False
+
+        # Set up
         replay_buffer = ReplayBuffer(buffer_size)
 
         optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=lr)
@@ -104,15 +119,7 @@ class DQN(Algorithm):
 
         total_timesteps = 0
 
-        rolling_rewards = []
-        self.infer = 0
-        if early_stopping_config is not None:
-            early_stopping = True
-            init_threshold, test_threshold, test_episodes = vars(early_stopping_config).values()
-            print(init_threshold, test_threshold, test_episodes)
-        else:
-            early_stopping = False
-
+        # Main Loop
         try:
             for ep in range(num_episodes):
                 ep_reward = 0
@@ -134,7 +141,7 @@ class DQN(Algorithm):
 
                     total_timesteps += 1
 
-                    if self.infer == 0 and len(replay_buffer) >= batch_size:
+                    if len(replay_buffer) >= batch_size:
                         states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
 
                         q_values = self.policy_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
@@ -163,29 +170,30 @@ class DQN(Algorithm):
                     self.target_network.load_state_dict(self.policy_network.state_dict())
 
                 # print(f"Epsilon: {self.epsilon}")
-                if self.infer == 0:
-                    print(f"Episode {ep}, Reward: {ep_reward}")
-                else:
-                    print(f"Inferring Episode {ep}, Reward: {ep_reward}")
-
+                print(f"Episode {ep}, Reward: {ep_reward}")
+                
                 if self.enable_wandb:
                     wandb.log({"episode": ep, "total_reward": ep_reward, "epsilon": self.epsilon})
 
-                rolling_rewards.append(ep_reward)
-                if (len(rolling_rewards) > 10):
-                    rolling_rewards = rolling_rewards[1:]
-                    rolling_average = sum(rolling_rewards) / 10
-                else:
-                    rolling_average = None
-                
-                if early_stopping and rolling_average and rolling_average >= init_threshold and self.infer == 0:
-                    self.infer = test_episodes + 1
 
-                if self.infer == 1 and rolling_average and rolling_average >= test_threshold:
-                    print('test passed')
-                    break
+                # Early Stopping Code
+                if early_stopping:
+                    rolling_rewards.append(ep_reward)
+                    if (len(rolling_rewards) > init_episodes):
+                        rolling_rewards = rolling_rewards[1:]
+                        rolling_average = sum(rolling_rewards) / init_episodes
+                    else:
+                        rolling_average = None
                 
-                self.infer = max(0, self.infer - 1)
+                    if rolling_average is not None and rolling_average >= init_threshold and cooldown == 0:
+                        p = self.infer()
+                        if p:
+                            print("Test passed")
+                            break
+                        else:
+                            cooldown = self.cooldown
+
+                cooldown = max(0, cooldown - 1)
 
         finally:
             if self.enable_wandb:
@@ -197,7 +205,39 @@ class DQN(Algorithm):
             except AttributeError:
                 torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + "_DQN.pth")
 
-                
+    # This is used by training to determine early stopping / see non-exploration results mid training
+    def infer(self):
+        test_rewards = []
+
+        self.inferring = True
+
+        for ep in range(self.test_episodes):
+            ep_reward = 0
+            _, _, obs, done, _ = self.env.reset(render=True)
+
+            state = torch.flatten(obs)
+
+            while not done:
+                action = self.get_action(state)
+
+                reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
+
+                next_state = torch.flatten(obs)
+
+                ep_reward += reward
+
+                state = next_state
+
+
+            print(f"Inferring Episode {ep}, Reward: {ep_reward}")
+            test_rewards.append(ep_reward)
+
+        if sum(test_rewards) / self.test_episodes >= self.test_threshold:
+            return True
+        
+        return False
+
+    # This should be called outside    
     def test(self, path, num_episodes=10):
         self.policy_network.load_state_dict(torch.load(path))
 
@@ -221,6 +261,5 @@ class DQN(Algorithm):
                 ep_reward += reward
 
                 state = next_state
-
 
             print(f"Episode {ep}, Reward: {ep_reward}")

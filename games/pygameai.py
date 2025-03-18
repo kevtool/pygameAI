@@ -30,7 +30,9 @@ class pygameAI():
         array = avg_pool(array)
         # array.to('cpu')
 
-        return array
+        normalized_tensor = (array - array.min()) / (array.max() - array.min())
+
+        return normalized_tensor
 
 
     def set_game_speed(self, game_speed):

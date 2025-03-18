@@ -10,6 +10,9 @@ def softmax(logits):
     exps = np.exp(logits - np.max(logits))
     return exps / np.sum(exps)
 
+def normalize_values(window_width, *params):
+    return [p / window_width for p in params]
+
 # rect is a pygame rect, radius is circle radius, center is circle center
 def intersects(rect, radius, center) -> bool:
     circle_distance_x = abs(center[0]-rect.centerx)

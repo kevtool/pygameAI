@@ -1,9 +1,12 @@
 import pygame
+import torch
 from games.pygameai import pygameAI
 from games.objects import TiledPlayer, TiledFood
+from utils import normalize_values
 
 class FoodGame(pygameAI):
-    def __init__(self):
+    def __init__(self, use_values_for_obs=False):
+        super().__init__()
         self.window_width = 1280
         self.window_height = 720
 
@@ -14,11 +17,15 @@ class FoodGame(pygameAI):
         # downsize the screen so models can store states more efficiently
         self.pool_factor = 16
 
+        self.use_values_for_obs = use_values_for_obs
+
         self.set_obs_space('continuous', 
             (int(1280 / self.pool_factor), 
              int(720 / self.pool_factor), 
              3)
         )
+        if use_values_for_obs:
+            self.set_obs_space('continuous', 2)
 
         self.tile_size = 20
         self.player = TiledPlayer(tile_rows=3, tile_cols=20, tile_size=64)
@@ -45,6 +52,10 @@ class FoodGame(pygameAI):
         self.action = 0
 
         obs = self.get_rgb_array()
+
+        if self.use_values_for_obs:
+            obs = normalize_values(self.window_width, self.player.tile_row - self.food.tile_row, self.player.tile_col - self.food.tile_col)
+            obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
 
         return 0, 0, obs, False, None
     
@@ -79,6 +90,11 @@ class FoodGame(pygameAI):
             self.render()
         
         obs = self.get_rgb_array()
+
+        if self.use_values_for_obs:
+            obs = normalize_values(self.window_width, self.player.tile_row - self.food.tile_row, self.player.tile_col - self.food.tile_col)
+            obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
+
         self.time -= 1
         if self.time <= 0:
             done = True

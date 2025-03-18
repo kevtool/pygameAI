@@ -132,6 +132,8 @@ class DQN(Algorithm):
 
                     reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
 
+                    print(obs)
+
                     next_state = torch.flatten(obs)
 
                     ep_reward += reward
@@ -152,8 +154,10 @@ class DQN(Algorithm):
                         # Loss and optimization
                         loss = torch.nn.MSELoss()(q_values, targets)
 
+                        print(loss)
+
                         if self.enable_wandb:
-                            wandb.log({"reward": reward, "loss": loss})
+                            wandb.log({"reward": reward, "loss": loss, "epsilon": self.epsilon})
 
                         optimizer.zero_grad()
                         loss.backward()
@@ -173,7 +177,7 @@ class DQN(Algorithm):
                 print(f"Episode {ep}, Reward: {ep_reward}")
                 
                 if self.enable_wandb:
-                    wandb.log({"episode": ep, "total_reward": ep_reward, "epsilon": self.epsilon})
+                    wandb.log({"episode": ep, "total_reward": ep_reward})
 
 
                 # Early Stopping Code
@@ -198,12 +202,12 @@ class DQN(Algorithm):
         finally:
             if self.enable_wandb:
                 wandb.finish()
-            current_time = datetime.today().strftime('%Y_%m_%d_%H_%M_%S_')
+                current_time = datetime.today().strftime('%Y_%m_%d_%H_%M_%S_')
 
-            try:
-                torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + self.env.name + "_DQN.pth")
-            except AttributeError:
-                torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + "_DQN.pth")
+                try:
+                    torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + self.env.name + "_DQN.pth")
+                except AttributeError:
+                    torch.save(self.policy_network.state_dict(), "saved_models/" + current_time + "_DQN.pth")
 
     # This is used by training to determine early stopping / see non-exploration results mid training
     def infer(self):

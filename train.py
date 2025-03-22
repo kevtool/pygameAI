@@ -29,6 +29,18 @@ from config_classes import DQNConfig, EarlyStoppingConfig
 
 # # trying FoodGame
 
+network_config = {
+    "input_channels": 3,
+    "input_size": (80, 45),  # (Height, Width)
+    "conv_layers": [
+        {"out_channels": 32, "kernel_size": 8, "stride": 4},
+        {"out_channels": 64, "kernel_size": 4, "stride": 2},
+        {"out_channels": 64, "kernel_size": 3, "stride": 1},
+    ],
+    "fc_units": 256,
+    "num_actions": 4
+}
+
 game = FoodGame(use_values_for_obs=False)
-model = DQN(game, enable_wandb=False)
+model = DQN(game, network_config=network_config, enable_wandb=True)
 model.train(100000, timesteps_per_decay=500, speed=120)

@@ -30,7 +30,7 @@ class FoodGame(pygameAI):
         self.tile_size = 20
         self.player = TiledPlayer(tile_rows=3, tile_cols=20, tile_size=64)
         self.food = TiledFood(tile_rows=3, tile_cols=20, tile_size=64)
-        self.food.spawn(self.player.tile_row, self.player.tile_col)
+        # self.food.spawn(self.player.tile_row, self.player.tile_col)
 
         self.set_action_space('discrete', 4)
 
@@ -50,6 +50,9 @@ class FoodGame(pygameAI):
         self.time = 300
 
         self.action = 0
+
+        if render:
+            self.render()
 
         obs = self.get_rgb_array()
 
@@ -99,7 +102,6 @@ class FoodGame(pygameAI):
         if self.time <= 0:
             done = True
             self.update_score()
-            self.reset(render=render)
         
         return reward, 0, obs, done, None
 

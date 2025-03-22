@@ -58,7 +58,10 @@ class TiledFood(TiledObject, pygame.Rect):
     
     def spawn(self, player_row=None, player_col=None):
         row = player_row if player_row is not None else self.tile_row
-        col = player_row if player_row is not None else self.tile_col
+        col = player_col if player_col is not None else self.tile_col
+
+        self.tile_row = row
+        self.tile_col = col
 
         while self.tile_row == row and self.tile_col == col:
             row = random.randint(0, self.tile_rows - 1)

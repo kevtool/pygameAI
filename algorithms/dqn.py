@@ -9,17 +9,43 @@ from collections import deque
 from algorithms.algorithm import Algorithm
 
 class QNetwork(torch.nn.Module):
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, config=None):
+
         super().__init__()
-        self.fc = torch.nn.Sequential(
-            torch.nn.Linear(state_dim, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, action_dim)
-        )
+        if config:
+            layerlist = []
+            in_channels = config["input_channels"]
+            for conv in config["conv_layers"]:
+                layerlist.append(torch.nn.Conv2d(in_channels, conv["out_channels"], conv["kernel_size"], conv["stride"]))
+                layerlist.append(torch.nn.ReLU())
+                in_channels = conv["out_channels"]
+            
+            self.cnn = torch.nn.Sequential(*layerlist)
+
+            with torch.no_grad():
+                sample_input = torch.zeros(1, config["input_channels"], *config["input_size"])
+                sample_output = self.cnn(sample_input)
+                conv_output_size = sample_output.view(1, -1).size(1)
+
+            self.fc = torch.nn.Sequential(
+                torch.nn.Linear(conv_output_size, config["fc_units"]),
+                torch.nn.ReLU(),
+                torch.nn.Linear(config["fc_units"], config["num_actions"])
+            )
+
+        else:
+            self.cnn = torch.nn.Identity()
+            self.fc = torch.nn.Sequential(
+                torch.nn.Linear(state_dim, 128),
+                torch.nn.ReLU(),
+                torch.nn.Linear(128, 128),
+                torch.nn.ReLU(),
+                torch.nn.Linear(128, action_dim)
+            )
 
     def forward(self, x):
+        x = self.cnn(x)
+        x = x.view(x.size(0), -1)  # Flatten
         return self.fc(x)
     
 class ReplayBuffer:
@@ -46,7 +72,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
 class DQN(Algorithm):
-    def __init__(self, env, enable_wandb=True):
+    def __init__(self, env, network_config=None, enable_wandb=True):
         super().__init__(env)
 
         try:
@@ -58,8 +84,8 @@ class DQN(Algorithm):
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-        self.policy_network = QNetwork(self.inputs, self.outputs).to(self.device)
-        self.target_network = QNetwork(self.inputs, self.outputs).to(self.device)
+        self.policy_network = QNetwork(self.inputs, self.outputs, config=network_config).to(self.device)
+        self.target_network = QNetwork(self.inputs, self.outputs, config=network_config).to(self.device)
 
         self.enable_wandb = enable_wandb
         if enable_wandb == True:
@@ -74,6 +100,7 @@ class DQN(Algorithm):
             action = torch.tensor(action, device=self.device)
         else:
             with torch.no_grad():
+                state = state.unsqueeze(0)
                 action = torch.argmax(self.policy_network(state))
 
         return action
@@ -125,16 +152,16 @@ class DQN(Algorithm):
                 ep_reward = 0
                 _, _, obs, done, _ = self.env.reset(render=True)
 
-                state = torch.flatten(obs)
+                # state = torch.flatten(obs)
+                state = obs
 
                 while not done:
                     action = self.get_action(state)
 
                     reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
 
-                    print(obs)
-
-                    next_state = torch.flatten(obs)
+                    # next_state = torch.flatten(obs)
+                    next_state = obs
 
                     ep_reward += reward
 
@@ -151,10 +178,11 @@ class DQN(Algorithm):
                             next_q_values = self.target_network(next_states).max(dim=1)[0]
                             targets = rewards + gamma * next_q_values * (1 - dones)
 
+                            if torch.isnan(q_values).any() or torch.isnan(targets).any():
+                                print("NaN encountered")
+
                         # Loss and optimization
                         loss = torch.nn.MSELoss()(q_values, targets)
-
-                        print(loss)
 
                         if self.enable_wandb:
                             wandb.log({"reward": reward, "loss": loss, "epsilon": self.epsilon})
@@ -219,14 +247,16 @@ class DQN(Algorithm):
             ep_reward = 0
             _, _, obs, done, _ = self.env.reset(render=True)
 
-            state = torch.flatten(obs)
+            # state = torch.flatten(obs)
+            state = obs
 
             while not done:
                 action = self.get_action(state)
 
                 reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
 
-                next_state = torch.flatten(obs)
+                # next_state = torch.flatten(obs)
+                next_state = obs
 
                 ep_reward += reward
 
@@ -253,14 +283,16 @@ class DQN(Algorithm):
             ep_reward = 0
             _, _, obs, done, _ = self.env.reset(render=True)
 
-            state = torch.flatten(obs)
+            # state = torch.flatten(obs)
+            state = obs
 
             while not done:
                 action = self.get_action(state)
 
                 reward, _, obs, done, info = self.env.step(action, mode='ai', render=True)
 
-                next_state = torch.flatten(obs)
+                # next_state = torch.flatten(obs)
+                next_state = obs
 
                 ep_reward += reward
 

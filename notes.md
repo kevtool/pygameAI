@@ -1,3 +1,7 @@
+March 21 update:
+First of all the DQN works. Right now it's not working on RGB observations. It learns but the model is having trouble with giving correct actions,
+even with CNN added. I will try having the model identify the positions of the food and player next.
+
 March 2 update:
 Not performing too well on the fishing game either. I still can't tell if my DQN implementation is correct or not. There are some elements in the environment (randomness, nature of the ship) that can add to the difficulty of learning the game. Next step is to design a game that DQN should do very well on.
 
